@@ -13,7 +13,7 @@ import datablob
 import datetime
 from google.transit import gtfs_realtime_pb2
 import simple_env as se
-from time import sleep
+from time import sleep, perf_counter
 from zoneinfo import ZoneInfo
 
 AWS_BUCKET_NAME = se.get("AWS_BUCKET_NAME")
@@ -35,6 +35,7 @@ if not GTFS_TIMEZONE:
 GTFS_UPDATE_FREQUENCY = se.get("GTFS_UPDATE_FREQUENCY")
 if not GTFS_UPDATE_FREQUENCY:
     raise Exception("[gtfs-rt-vehicle-positions] missing GTFS_UPDATE_FREQUENCY")
+
 
 def hms(seconds: int) -> str:
     hours = seconds // 3600
@@ -63,9 +64,30 @@ for trip in scheduled_bus_trips:
     key = (route_id, gtfs_headsign, start_time)
     trips_lookup[key] = trip
 
+
+def debouncer(wait_seconds):
+    last_called = {"time": 0.0}
+
+    def inner():
+        now = perf_counter()
+        elapsed = now - last_called["time"]
+
+        if elapsed < wait_seconds:
+            print("sleeping", wait_seconds - elapsed, "seconds")
+            sleep(wait_seconds - elapsed)
+
+        last_called["time"] = perf_counter()
+        return last_called["time"]
+
+    return inner
+
+
+debounce = debouncer(GTFS_UPDATE_FREQUENCY)
+
 while True:
-    print(f"[gtfs-rt-vehicle-positions] sleeping {GTFS_UPDATE_FREQUENCY} seconds")
-    sleep(GTFS_UPDATE_FREQUENCY)
+    debounce()
+
+    rows = []
 
     feed = gtfs_realtime_pb2.FeedMessage()
 
@@ -169,11 +191,27 @@ while True:
 
         if now_datetime.time() < datetime.time(3, 0):
             # currently assuming don't have any buses that pull out after midnight
-            vehicle.trip.start_date = (
-                now_datetime.date() - datetime.timedelta(days=1)
-            ).strftime("%Y%m%d")
+            trip_start_date = now_datetime.date() - datetime.timedelta(days=1)
         else:
-            vehicle.trip.start_date = now_datetime.date().strftime("%Y%m%d")
+            trip_start_date = now_datetime.date()
+        vehicle.trip.start_date = trip_start_date.strftime("%Y%m%d")
+
+        rows.append(
+            {
+                "vehicle_id": vehicle_id,
+                "route_id": route_id,
+                "trip_id": vehicle.trip.trip_id,
+                "trip_start_date": trip_start_date.strftime("%Y-%m-%d"),
+                "trip_start_time": vehicle.trip.start_time,
+                "direction_id": vehicle.trip.direction_id,
+                "latitude": vehicle.position.latitude,
+                "longitude": vehicle.position.longitude,
+                "speed": vehicle.position.speed,
+                "bearing": vehicle.position.bearing,
+                "timestamp": vehicle.timestamp,
+                "schedule_relationship": "scheduled",
+            }
+        )
 
     print(f"[gtfs-rt-vehicle-positions] used cloud for vehicle positions: {cloud_ct}")
     print(f"[gtfs-rt-vehicle-positions] used clever for vehicle positions: {clever_ct}")
@@ -189,5 +227,46 @@ while True:
         # Adding CacheControl prevents clients from seeing stale bus locations
         CacheControl="max-age=0, no-cache, no-store, must-revalidate",
     )
-
     print(f"[gtfs-rt-vehicle-positions] updated GTFS Realtime feed")
+
+    client = datablob.DataBlobClient(
+        bucket_name=AWS_BUCKET_NAME, bucket_path=AWS_BUCKET_PATH
+    )
+
+    geojson = client.convert_rows_to_geojson_points(
+        rows=rows, longitude_key="longitude", latitude_key="latitude"
+    )
+    client.upload_geojson_points(
+        dataset_name="fused_vehicle_positions", dataset_version="1", data=geojson
+    )
+
+    metadata = {
+        "name": "fused_vehicle_positions",
+        "lastUpdated": dict(
+            [
+                (tz, datetime.datetime.now(ZoneInfo(tz)).isoformat())
+                for tz in ["UTC", "America/New_York"]
+            ]
+        ),
+        "description": "Real-time location of all CARTA Buses and Shuttles, created by fusing multiple data streams",
+        "numColumns": 12,
+        "numRows": len(rows),
+        "columns": [
+            "vehicle_id",
+            "route_id",
+            "trip_id",
+            "trip_start_date",
+            "trip_start_time",
+            "direction_id",
+            "latitude",
+            "longitude",
+            "speed",
+            "bearing",
+            "timestamp",
+            "schedule_relationship",
+        ],
+        "files": [{"filename": "data.points.geojson", "format": "GeoJSON (Points)"}],
+    }
+    client.upload_metadata("fused_vehicle_positions", "1", metadata)
+
+    print(f"[gtfs-rt-vehicle-positions] updated fused dataset")
