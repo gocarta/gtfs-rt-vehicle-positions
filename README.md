@@ -31,6 +31,7 @@ The pipeline runs approximately every second on a cloud server.
 - [csv](https://gocarta.s3.us-east-2.amazonaws.com/public/data/v/v1/data.csv)
 - [geojson](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/data.points.geojson)
 - [geoparquet](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/data.parquet)
+- [gtfs](https://gocarta.s3.us-east-2.amazonaws.com/public/gtfs-rt/VehiclePositions.pb)
 - [json](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/data.json)
 - [json lines](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/data.jsonl)
 - [shapefile](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/data.points.shp.zip)
