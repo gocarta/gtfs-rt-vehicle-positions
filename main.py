@@ -233,25 +233,12 @@ while True:
         bucket_name=AWS_BUCKET_NAME, bucket_path=AWS_BUCKET_PATH
     )
 
-    geojson = client.convert_rows_to_geojson_points(
-        rows=rows, longitude_key="longitude", latitude_key="latitude"
-    )
-    client.upload_geojson_points(
-        dataset_name="fused_vehicle_positions", dataset_version="1", data=geojson
-    )
-
-    metadata = {
-        "name": "fused_vehicle_positions",
-        "lastUpdated": dict(
-            [
-                (tz, datetime.datetime.now(ZoneInfo(tz)).isoformat())
-                for tz in ["UTC", "America/New_York"]
-            ]
-        ),
-        "description": "Real-time location of all CARTA Buses and Shuttles, created by fusing multiple data streams",
-        "numColumns": 12,
-        "numRows": len(rows),
-        "columns": [
+    client.update_dataset(
+        name="gtfsrt_vehicle_positions",
+        description="GTFS Realtime Vehicle Positions.  The location of all CARTA Buses and Shuttles, created by fusing multiple data streams.",
+        version="1",
+        data=rows,
+        column_names=[
             "vehicle_id",
             "route_id",
             "trip_id",
@@ -265,8 +252,45 @@ while True:
             "timestamp",
             "schedule_relationship",
         ],
-        "files": [{"filename": "data.points.geojson", "format": "GeoJSON (Points)"}],
-    }
-    client.upload_metadata("fused_vehicle_positions", "1", metadata)
+        latitude_key="latitude",
+        longitude_key="longitude",
+    )
+    print("[dataops-gtfsrt-vehicle-positions] updated dataset")
 
-    print(f"[gtfs-rt-vehicle-positions] updated fused dataset")
+    # geojson = client.convert_rows_to_geojson_points(
+    #     rows=rows, longitude_key="longitude", latitude_key="latitude"
+    # )
+    # client.upload_geojson_points(
+    #     dataset_name="gtfsrt_vehicle_positions", dataset_version="1", data=geojson
+    # )
+
+    # metadata = {
+    #     "name": "gtfsrt_vehicle_positions",
+    #     "lastUpdated": dict(
+    #         [
+    #             (tz, datetime.datetime.now(ZoneInfo(tz)).isoformat())
+    #             for tz in ["UTC", "America/New_York"]
+    #         ]
+    #     ),
+    #     "description": "GTFS Realtime Vehicle Positions.  The location of all CARTA Buses and Shuttles, created by fusing multiple data streams.",
+    #     "numColumns": 12,
+    #     "numRows": len(rows),
+    #     "columns": [
+    #         "vehicle_id",
+    #         "route_id",
+    #         "trip_id",
+    #         "trip_start_date",
+    #         "trip_start_time",
+    #         "direction_id",
+    #         "latitude",
+    #         "longitude",
+    #         "speed",
+    #         "bearing",
+    #         "timestamp",
+    #         "schedule_relationship",
+    #     ],
+    #     "files": [{"filename": "data.points.geojson", "format": "GeoJSON (Points)"}],
+    # }
+    # client.upload_metadata("gtfsrt_vehicle_positions", "1", metadata)
+
+    # print(f"[gtfs-rt-vehicle-positions] uploaded geojson")
