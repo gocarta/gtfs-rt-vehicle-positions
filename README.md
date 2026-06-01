@@ -13,18 +13,18 @@ The pipeline runs approximately every second on a cloud server.
 ## columns
 | column | example | description |
 | :--- | :--- | :--- |
-| **vehicle_id** | `XXXX` | The unique internal identifier for the specific physical bus. |
-| **route_id** | `` | Route ID |
-| **trip__id** | `` | Trip ID |
-| **trip_start_date** | `` | what day the trip started |
-| **trip_start_time** | `` | what time the trip started |
-| **direction_id** | `` | Direction ID |
-| **latitude** | `` | Latitude of the Vehicle |
-| **longitude | `` | Longitude of the Vehicle |
-| **speed** | `` | Estimated speed from Clever Devices.  It's not reliable and should be taken with a grain of salt. |
-| **bearing** | `` | Bearing of the Vehicle from Clever Device. |
-| **timestamp** | `` | When the vehicle reported this location |
-| **schedule_relationship | `"Scheduled"` | Whether the trip is planned or not |
+| **vehicle_id** | `"163"` | The unique internal identifier for the specific physical bus. |
+| **route_id** | `"1"` | Route ID |
+| **trip_id** | `"1967010"` | Trip ID |
+| **trip_start_date** | `"2026-05-31"` | what day the trip started |
+| **trip_start_time** | `"20:12:00"` | what time the trip started |
+| **direction_id** | `1` | Direction ID |
+| **latitude** | `34.994598388671875` | Latitude of the Vehicle |
+| **longitude** | `-85.30690002441406` | Longitude of the Vehicle |
+| **speed** | `0.0` | Estimated speed from Clever Devices.  It's not reliable and should be taken with a grain of salt. |
+| **bearing** | `25.0` | Bearing of the Vehicle from Clever Device. |
+| **timestamp** | `1780273303` | When the vehicle reported this location |
+| **schedule_relationship** | `"Scheduled"` | Whether the trip is planned or not |
 
 ## download links
 - [metadata](https://gocarta.s3.us-east-2.amazonaws.com/public/data/gtfsrt_vehicle_positions/v1/meta.json)
