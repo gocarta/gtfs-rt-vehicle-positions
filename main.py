@@ -36,6 +36,8 @@ GTFS_UPDATE_FREQUENCY = se.get("GTFS_UPDATE_FREQUENCY")
 if not GTFS_UPDATE_FREQUENCY:
     raise Exception("[gtfs-rt-vehicle-positions] missing GTFS_UPDATE_FREQUENCY")
 
+direction_ids = {"0": "Outbound", "1": "Inbound"}
+
 
 def hms(seconds: int) -> str:
     hours = seconds // 3600
@@ -204,6 +206,7 @@ while True:
                 "trip_start_date": trip_start_date.strftime("%Y-%m-%d"),
                 "trip_start_time": vehicle.trip.start_time,
                 "direction_id": vehicle.trip.direction_id,
+                "direction": direction_ids[str(vehicle.trip.direction_id)],
                 "latitude": vehicle.position.latitude,
                 "longitude": vehicle.position.longitude,
                 "speed": vehicle.position.speed,
@@ -245,6 +248,7 @@ while True:
             "trip_start_date",
             "trip_start_time",
             "direction_id",
+            "direction",
             "latitude",
             "longitude",
             "speed",
