@@ -187,6 +187,7 @@ while True:
             vehicle.trip.direction_id = int(gtfs_scheduled_trip["direction_id"])
             # vehicle.stop_id = ... # can look up in static GTFS stop_times, to get sequence
         else:
+            gtfs_scheduled_trip = None
             vehicle.trip.trip_id = item["trip_id"]  # reluctantly use Clever's trip id
             vehicle.trip.start_time = scheduled_hms
             print("[gtfs-rt-vehicle-positions] couldn't find match for", lookup_key)
@@ -207,6 +208,9 @@ while True:
                 "trip_start_time": vehicle.trip.start_time,
                 "direction_id": vehicle.trip.direction_id,
                 "direction": direction_ids[str(vehicle.trip.direction_id)],
+                "headsign": gtfs_scheduled_trip["headsign"]
+                if gtfs_scheduled_trip
+                else None,
                 "latitude": vehicle.position.latitude,
                 "longitude": vehicle.position.longitude,
                 "speed": vehicle.position.speed,
@@ -249,6 +253,7 @@ while True:
             "trip_start_time",
             "direction_id",
             "direction",
+            "headsign",
             "latitude",
             "longitude",
             "speed",
