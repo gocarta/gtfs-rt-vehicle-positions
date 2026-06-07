@@ -38,6 +38,8 @@ if not GTFS_UPDATE_FREQUENCY:
 
 direction_ids = {"0": "Outbound", "1": "Inbound"}
 
+extras = [{"vehicle_id": "739", "route_id": "34"}]
+
 
 def hms(seconds: int) -> str:
     hours = seconds // 3600
@@ -101,7 +103,11 @@ while True:
     feed.header.incrementality = gtfs_realtime_pb2.FeedHeader.FULL_DATASET
     feed.header.timestamp = timestamp
 
-    vehicles = client.get_dataset_as_json(name="clever_vehicle_locations", version="1")
+    clever_vehicles = client.get_dataset_as_json(
+        name="clever_vehicle_locations", version="1"
+    )
+    clever_vehicle_ids = set([vehicle["vehicle_id"] for vehicle in clever_vehicles])
+
     cloud_vehicles = client.get_dataset_as_json(
         name="cloud_vehicle_locations", version="1"
     )
@@ -113,7 +119,7 @@ while True:
     cloud_ct = 0
     clever_ct = 0
 
-    for item in vehicles:
+    for item in clever_vehicles:
         # print("\n\nclever vehicle:\n", item)
         vehicle_id = item["vehicle_id"]
         route_id = item["route"]
@@ -219,6 +225,53 @@ while True:
                 "schedule_relationship": "scheduled",
             }
         )
+
+    # adding extras that aren't included in Clever
+    for extra in extras:
+        vehicle_id = extra["vehicle_id"]
+        route_id = extra["route_id"]
+        reported = cloud_vehicle["reported"]
+
+        cloud_vehicle = cloud_vehicles_by_id[vehicle_id]
+
+        cloud_vehicle_datetime = datetime.datetime.fromisoformat(reported)
+
+        if not (
+            now_datetime - datetime.timedelta(minutes=1)
+            <= cloud_vehicle_datetime
+            <= now_datetime + datetime.timedelta(minutes=1)
+        ):
+            print("[dataops-gtfs-rt-vehicle-positions] timestamp is too old")
+            continue
+
+        if vehicle_id in clever_vehicle_ids:
+            print(
+                "[dataops-gtfs-rt-vehicle-positions] vehicle already processed using clever list"
+            )
+            continue
+
+        if now_datetime.time() < datetime.time(3, 0):
+            # currently assuming don't have any buses that pull out after midnight
+            trip_start_date = now_datetime.date() - datetime.timedelta(days=1)
+        else:
+            trip_start_date = now_datetime.date()
+
+        rows.append(
+            {
+                "vehicle_id": vehicle_id,
+                "route_id": route_id,
+                "trip_start_date": trip_start_date.strftime("%Y-%m-%d"),
+                "latitude": cloud_vehicle["latitude"],
+                "longitude": cloud_vehicle["longitude"],
+                "timestamp": int(
+                    datetime.datetime.fromisoformat(
+                        cloud_vehicle["reported"]
+                    ).timestamp()
+                ),
+                "schedule_relationship": "scheduled",
+            }
+        )
+        print(f"[gtfs-rt-vehicle-positions] added extra vehicle: {vehicle_id}")
 
     print(f"[gtfs-rt-vehicle-positions] used cloud for vehicle positions: {cloud_ct}")
     print(f"[gtfs-rt-vehicle-positions] used clever for vehicle positions: {clever_ct}")
