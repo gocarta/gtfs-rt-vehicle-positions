@@ -232,6 +232,12 @@ while True:
         route_id = extra["route_id"]
         reported = cloud_vehicle["reported"]
 
+        if vehicle_id not in cloud_vehicles_by_id:
+            print(
+                f"[dataops-gtfs-rt-vehicle-positions] vehicle {vehicle_id} not found in cloud vehicles"
+            )
+            continue
+
         cloud_vehicle = cloud_vehicles_by_id[vehicle_id]
 
         cloud_vehicle_datetime = datetime.datetime.fromisoformat(reported)
